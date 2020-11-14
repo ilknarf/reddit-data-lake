@@ -1,11 +1,11 @@
 import sys
 import os
 
-from collections import deque
 import re
+from datetime import datetime
 
 import praw
-from textblob import Blobber, TextBlob
+from textblob import TextBlob
 
 # https://gist.github.com/slowkow/7a7f61f495e3dbb7e3d767f97bd7304b
 def remove_emoji(string):
@@ -41,20 +41,48 @@ if __name__ == '__main__':
 
     # use set to track keys of already-processed submissions
     processed = set()
+    count = 0
 
     print('========================================')
     print('Connected to Reddit!')
 
     while True:
         # lazy comment stream
-        controversial = reddit.subreddit(subreddits).comments(limit=100).controversial()
+        controversial = reddit.subreddit(subreddits).comments()
         new_processed = set()
 
         for comment in controversial:
             if comment.id not in processed:
-                cleaned = remove_emoji(str(comment.body))
+                # strip emojis and other unicode chars
+                # cleaned = remove_emoji(str(comment.body))
+                cleaned = str(comment.body)
+
+                # get date
+                date = datetime.utcfromtimestamp(comment.created_utc)
+                date_iso = date.strftime('%Y-%m-%d %H:%M:%S')
+
+                # get sentiment analysis
                 sentiment = get_sentiment(cleaned)
+                subjectivity = sentiment.subjectivity
+                polarity = sentiment.polarity
+
+                comment_json = {
+                    '@timestamp': date_iso,
+                    'id': comment.id,
+                    'subreddit': comment.subreddit,
+                    'body': cleaned,
+                    'is_submitter': comment.is_submitter,
+                    'polarity': polarity,
+                    'subjectivity': subjectivity,
+                    'author': comment.author.name,
+                }
                 
                 new_processed.add(comment.id)
+                print('========================================')
+                print(f'analyzed comment {count} id={comment.id} polarity={polarity} subjectivity={subjectivity}')
+                print(comment_json)
+
+                # increment overall count
+                count += 1
 
         processed = new_processed
