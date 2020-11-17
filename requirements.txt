@@ -1,1 +1,13 @@
--e .
+attrs==20.3.0
+aws-cdk.aws-kinesisfirehose==1.73.0
+aws-cdk.cloud-assembly-schema==1.73.0
+aws-cdk.core==1.73.0
+aws-cdk.cx-api==1.73.0
+aws-cdk.region-info==1.73.0
+cattrs==1.1.1
+constructs==3.2.30
+jsii==1.14.1
+publication==0.0.3
+python-dateutil==2.8.1
+six==1.15.0
+typing-extensions==3.7.4.3

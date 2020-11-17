@@ -2,7 +2,7 @@
 
 from aws_cdk import core
 
-from stack import RedditDataLakeStack
+from stack.reddit_data_lake_stack import RedditDataLakeStack
 
 
 app = core.App()
