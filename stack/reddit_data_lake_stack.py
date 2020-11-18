@@ -89,6 +89,17 @@ class RedditDataLakeStack(core.Stack):
             description='Role used by the Reddit Streaming Application Fargate Task',
         )
 
+        app_role.add_to_policy(
+            iam.PolicyStatement(
+                resources=[firehose.attr_arn],
+                actions=[
+                    'firehose:DeleteDeliveryStream',
+                    'firehose:PutRecord',
+                    'firehose:PutRecordBatch',
+                    'firehose:UpdateDestination',
+                ],
+            )
+        )
 
         vpc = ec2.Vpc(self, 'RedditVpc', max_azs=3)
 
@@ -98,12 +109,16 @@ class RedditDataLakeStack(core.Stack):
             self, 'TaskDefinition',
             memory_limit_mib=256,
             cpu=256,
+            task_role=app_role,
         )
 
         task_definition.add_container(
             id='RedditStreamingApp',
             image=ecs.ContainerImage.from_asset('./sentiment_analysis'),
             command=['all'],
+            environment={
+                'FIREHOSE_STREAM_NAME': firehose.delivery_stream_name,
+            }
         )
 
         container = ecs.FargateService(

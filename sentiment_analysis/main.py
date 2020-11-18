@@ -12,7 +12,7 @@ import json
 
 import logging
 
-firehose_client = boto3.client('firehose', region_name='us-east-1')
+firehose_client = boto3.client('firehose', region_name='us-east-2')
 firehose_stream_name = os.environ['FIREHOSE_STREAM_NAME']
 
 def push_to_firehose(data):
