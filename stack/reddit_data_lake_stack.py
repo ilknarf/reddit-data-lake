@@ -1,3 +1,5 @@
+import os
+
 from aws_cdk import (
     core,
     aws_kinesisfirehose as kf,
@@ -175,7 +177,11 @@ class RedditDataLakeStack(core.Stack):
             command=['all'],
             environment={
                 'FIREHOSE_STREAM_NAME': firehose.delivery_stream_name,
-            }
+                'PRAW_CLIENT_SECRET': os.environ['PRAW_CLIENT_SECRET'],
+                'PRAW_CLIENT_ID': os.environ['PRAW_CLIENT_ID'],
+                'PRAW_USER_AGENT': os.environ['PRAW_USER_AGENT'],
+            },
+            logging=ecs.LogDriver.aws_logs(stream_prefix='reddit'),
         )
 
         container = ecs.FargateService(
