@@ -6,7 +6,7 @@ infrastructure-as-code.
 
 Progress:
 - [x] Reddit API Sentiment Analysis Application (to be deployed on ECS Fargate).
-- [ ] Hook up to Firehose
+- [x] Hook up to Firehose
 - [ ] Automate deployment using AWS CDK
 
 In order to build, make sure that the AWS CDK CLI is installed using
