@@ -87,7 +87,7 @@ if __name__ == '__main__':
                 comment_json = {
                     '@timestamp': date_iso,
                     'id': comment.id,
-                    'subreddit': str(comment.subreddit),
+                    'subreddit': comment.subreddit.name,
                     'body': cleaned,
                     'is_submitter': comment.is_submitter,
                     'polarity': polarity,

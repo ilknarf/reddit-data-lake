@@ -26,7 +26,7 @@ class RedditDataLakeStack(core.Stack):
             table_name='sentiment',
             columns=[
                 glue.Column(name='@timestamp', type=glue.Schema.TIMESTAMP),
-                glue.Column(name='id', type=glue.Schema.INTEGER),
+                glue.Column(name='id', type=glue.Schema.STRING),
                 glue.Column(name='subreddit', type=glue.Schema.STRING),
                 glue.Column(name='body', type=glue.Schema.STRING),
                 glue.Column(name='is_submitter', type=glue.Schema.BOOLEAN),
