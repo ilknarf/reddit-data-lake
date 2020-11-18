@@ -2,12 +2,12 @@
 
 This projects analyzes real-time Reddit data, performs sentiment analysis,
 and stores to S3 buckets using Kinesis Firehose. Uses AWS CDK for
-infrastructure-as-code.
+infrastructure-as-code. Data can be queried using Athena.
 
 Progress:
 - [x] Reddit API Sentiment Analysis Application (to be deployed on ECS Fargate).
 - [x] Hook up to Firehose
-- [ ] Automate deployment using AWS CDK
+- [x] Automate deployment using AWS CDK
 
 In order to build, make sure that the AWS CDK CLI is installed using
 `npm install -g aws-cdk@latest`

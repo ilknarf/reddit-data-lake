@@ -35,7 +35,7 @@ class RedditDataLakeStack(core.Stack):
                 glue.Column(name='author', type=glue.Schema.STRING),
             ],
             database=glue_db,
-            data_format=glue.DataFormat.JSON,
+            data_format=glue.DataFormat.PARQUET,
         )
 
         # role assumed by firehose
