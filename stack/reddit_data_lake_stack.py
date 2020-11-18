@@ -61,7 +61,11 @@ class RedditDataLakeStack(core.Stack):
         # add glue statement
         stream_role.add_to_policy(
             iam.PolicyStatement(
-                resources=[glue_table.table_arn],
+                resources=[
+                    glue_table.table_arn, 
+                    glue_db.database_arn, 
+                    glue_db.catalog_arn,
+                ],
                 actions=[
                     'glue:GetTable',
                     'glue:GetTableVersion',
@@ -70,17 +74,54 @@ class RedditDataLakeStack(core.Stack):
             )
         )
 
-        s3_config = kf.CfnDeliveryStream.S3DestinationConfigurationProperty(
+        # cloudwatch statement
+        stream_role.add_to_policy(
+            iam.PolicyStatement(
+                resources=['*'],
+                actions=[
+                    'logs:PutLogEvents',
+                ],
+            )
+        )
+
+        data_format_conversion_configuration = kf.CfnDeliveryStream.DataFormatConversionConfigurationProperty(
+            enabled=True,
+            input_format_configuration=kf.CfnDeliveryStream.InputFormatConfigurationProperty(
+                deserializer=kf.CfnDeliveryStream.DeserializerProperty(
+                    hive_json_ser_de=kf.CfnDeliveryStream.HiveJsonSerDeProperty(),
+                ),
+            ),
+            output_format_configuration=kf.CfnDeliveryStream.OutputFormatConfigurationProperty(
+                serializer=kf.CfnDeliveryStream.SerializerProperty(
+                    parquet_ser_de=kf.CfnDeliveryStream.ParquetSerDeProperty(),
+                ),
+            ),
+            schema_configuration=kf.CfnDeliveryStream.SchemaConfigurationProperty(
+                database_name=glue_db.database_name,
+                table_name=glue_table.table_name,
+                role_arn=stream_role.role_arn,
+                region='us-east-2',
+            ),
+        )
+
+        s3_config = kf.CfnDeliveryStream.ExtendedS3DestinationConfigurationProperty(
             bucket_arn=BUCKET_ARN,  # temporary, will replace with env variable
             role_arn=stream_role.role_arn,
+            data_format_conversion_configuration=data_format_conversion_configuration,
             prefix='reddit/',
+            buffering_hints=kf.CfnDeliveryStream.BufferingHintsProperty(
+                size_in_m_bs=64,
+            ),
         )
 
         firehose = kf.CfnDeliveryStream(
             self, 'FirehoseStream',
             delivery_stream_name='RedditDataStream',
-            s3_destination_configuration=s3_config,
+            extended_s3_destination_configuration=s3_config,
         )
+
+        # add role dependency
+        firehose.node.add_dependency(stream_role)
 
         # add ECS Fargate instance
         app_role = iam.Role(
@@ -89,6 +130,7 @@ class RedditDataLakeStack(core.Stack):
             description='Role used by the Reddit Streaming Application Fargate Task',
         )
 
+        # add firehose permissions
         app_role.add_to_policy(
             iam.PolicyStatement(
                 resources=[firehose.attr_arn],
@@ -101,13 +143,28 @@ class RedditDataLakeStack(core.Stack):
             )
         )
 
+        # add ecs and cloudwatch permissions
+        app_role.add_to_policy(
+            iam.PolicyStatement(
+                resources=['*'],
+                actions=[
+                    'ecr:GetAuthorizationToken',
+                    'ecr:BatchCheckLayerAvailability',
+                    'ecr:GetDownloadUrlForLayer',
+                    'ecr:BatchGetImage',
+                    'logs:CreateLogStream',
+                    'logs:PutLogEvents',
+                ],
+            )
+        )
+
         vpc = ec2.Vpc(self, 'RedditVpc', max_azs=3)
 
         cluster = ecs.Cluster(self, 'RedditCluster', vpc=vpc)
 
         task_definition = ecs.FargateTaskDefinition(
             self, 'TaskDefinition',
-            memory_limit_mib=256,
+            memory_limit_mib=512,
             cpu=256,
             task_role=app_role,
         )
