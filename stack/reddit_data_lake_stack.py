@@ -3,6 +3,8 @@ from aws_cdk import (
     aws_kinesisfirehose as kf,
     aws_iam as iam,
     aws_glue as glue,
+    aws_ecs as ecs,
+    aws_ec2 as ec2,
 )
 
 BUCKET_ARN = 'arn:aws:s3:::reddit-data-lake-target'
@@ -11,12 +13,12 @@ class RedditDataLakeStack(core.Stack):
 
     def __init__(self, scope: core.Construct, construct_id: str, **kwargs) -> None:
         super().__init__(scope, construct_id, **kwargs)
-
+        # create db for glue schema
         glue_db = glue.Database(
             self, 'GlueDB', database_name='reddit_data',
         )
 
-        # input data schema
+        # data schema
         glue_table = glue.Table(
             self, 'GlueTable',
             table_name='sentiment',
@@ -34,6 +36,7 @@ class RedditDataLakeStack(core.Stack):
             data_format=glue.DataFormat.JSON,
         )
 
+        # role assumed by firehose
         stream_role = iam.Role(
             self, 'FirehoseRole',
             assumed_by=iam.ServicePrincipal('firehose.amazonaws.com'),
@@ -77,4 +80,36 @@ class RedditDataLakeStack(core.Stack):
             self, 'FirehoseStream',
             delivery_stream_name='RedditDataStream',
             s3_destination_configuration=s3_config,
+        )
+
+        # add ECS Fargate instance
+        app_role = iam.Role(
+            self, 'RedditStreamingAppRole',
+            assumed_by=iam.ServicePrincipal('ecs-tasks.amazonaws.com'),
+            description='Role used by the Reddit Streaming Application Fargate Task',
+        )
+
+
+        vpc = ec2.Vpc(self, 'RedditVpc', max_azs=3)
+
+        cluster = ecs.Cluster(self, 'RedditCluster', vpc=vpc)
+
+        task_definition = ecs.FargateTaskDefinition(
+            self, 'TaskDefinition',
+            memory_limit_mib=256,
+            cpu=256,
+        )
+
+        task_definition.add_container(
+            id='RedditStreamingApp',
+            image=ecs.ContainerImage.from_asset('./sentiment_analysis'),
+            command=['all'],
+        )
+
+        container = ecs.FargateService(
+            self, 'StreamingApplication',
+            desired_count=1,
+            task_definition=task_definition,
+            cluster=cluster,
+            assign_public_ip=True,
         )

@@ -1,23 +1,42 @@
 import sys
 import os
 
-import re
+# import re
 from datetime import datetime
 
 import praw
 from textblob import TextBlob
 
+import boto3
+import json
+
+import logging
+
+firehose_client = boto3.client('firehose', region_name='us-east-1')
+firehose_stream_name = os.environ['FIREHOSE_STREAM_NAME']
+
+def push_to_firehose(data):
+    try:
+        res = firehose_client.put_record(
+            DeliveryStreamName=firehose_stream_name,
+            Record={'Data': (json.dumps(data, ensure_ascii=False) + '\n').encode('utf8')}
+        )
+
+        logging.info(res)
+    except:
+        logging.exception('error pushing to firehose')
+
 # https://gist.github.com/slowkow/7a7f61f495e3dbb7e3d767f97bd7304b
-def remove_emoji(string):
-    emoji_pattern = re.compile("["
-                           u"\U0001F600-\U0001F64F"  # emoticons
-                           u"\U0001F300-\U0001F5FF"  # symbols & pictographs
-                           u"\U0001F680-\U0001F6FF"  # transport & map symbols
-                           u"\U0001F1E0-\U0001F1FF"  # flags (iOS)
-                           u"\U00002702-\U000027B0"
-                           u"\U000024C2-\U0001F251"
-                           "]+", flags=re.UNICODE)
-    return emoji_pattern.sub(r'', string)
+# def remove_emoji(string):
+#     emoji_pattern = re.compile("["
+#                            u"\U0001F600-\U0001F64F"  # emoticons
+#                            u"\U0001F300-\U0001F5FF"  # symbols & pictographs
+#                            u"\U0001F680-\U0001F6FF"  # transport & map symbols
+#                            u"\U0001F1E0-\U0001F1FF"  # flags (iOS)
+#                            u"\U00002702-\U000027B0"
+#                            u"\U000024C2-\U0001F251"
+#                            "]+", flags=re.UNICODE)
+#     return emoji_pattern.sub(r'', string)
 
 # sentiment analysis
 def get_sentiment(comment):
@@ -43,8 +62,7 @@ if __name__ == '__main__':
     processed = set()
     count = 0
 
-    print('========================================')
-    print('Connected to Reddit!')
+    logging.info('Connected to Reddit!')
 
     while True:
         # lazy comment stream
@@ -78,9 +96,8 @@ if __name__ == '__main__':
                 }
                 
                 new_processed.add(comment.id)
-                print('========================================')
-                print(f'analyzed comment {count} id={comment.id} polarity={polarity} subjectivity={subjectivity}')
-                print(comment_json)
+                logging.info(f'Processed comment {count} id={comment.id} polarity={polarity} subjectivity={subjectivity}')
+                push_to_firehose(comment_json)
 
                 # increment overall count
                 count += 1
