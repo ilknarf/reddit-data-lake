@@ -7,6 +7,7 @@ from aws_cdk import (
     aws_glue as glue,
     aws_ecs as ecs,
     aws_ec2 as ec2,
+    aws_s3 as s3,
 )
 
 BUCKET_ARN = 'arn:aws:s3:::reddit-data-lake-target'
@@ -36,7 +37,7 @@ class RedditDataLakeStack(core.Stack):
             ],
             database=glue_db,
             data_format=glue.DataFormat.PARQUET,
-            bucket=BUCKET_ARN,
+            bucket=s3.Bucket.from_bucket_arn(self, 'DataBucket', BUCKET_ARN),
         )
 
         # role assumed by firehose
