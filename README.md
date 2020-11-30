@@ -35,6 +35,7 @@ Next, make sure that your Reddit credentials are exported
 export PRAW_CLIENT_SECRET=[YOUR API KEY SECRET]
 export PRAW_CLIENT_ID=[YOUR API KEY ID]
 export PRAW_USER_AGENT=[YOUR USER AGENT]
+export S3_BUCKET_ARN=[YOUR BUCKET ARN]
 ```
 
 Then, run from the project root:

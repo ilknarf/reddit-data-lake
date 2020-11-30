@@ -10,7 +10,7 @@ from aws_cdk import (
     aws_s3 as s3,
 )
 
-BUCKET_ARN = 'arn:aws:s3:::reddit-data-lake-target'
+BUCKET_ARN = os.environ['S3_BUCKET_ARN']
 
 class RedditDataLakeStack(core.Stack):
 
